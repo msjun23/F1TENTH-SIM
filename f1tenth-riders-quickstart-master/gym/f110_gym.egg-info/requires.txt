@@ -1,0 +1,6 @@
+Pillow
+gym==0.18.0
+numba
+numpy
+pyyaml
+scipy
