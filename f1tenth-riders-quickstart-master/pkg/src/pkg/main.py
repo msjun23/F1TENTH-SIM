@@ -18,7 +18,7 @@ from pkg.drivers import CustomDriver as race_driver
 drivers = [race_driver()]
 
 # choose your racetrack here (SOCHI, SOCHI_OBS, SILVERSTONE, SILVERSTONE_OBS)
-RACETRACK = 'SOCHI_OBS'
+RACETRACK = 'SOCHI'
 
 
 def _pack_odom(obs, i):
