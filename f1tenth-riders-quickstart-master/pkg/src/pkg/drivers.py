@@ -327,7 +327,7 @@ class CustomDriver:
         right_avg_dist = sum(ranges[180:360])
         avg_err = (left_avg_dist - right_avg_dist) / 180
 
-        Kp = 0.0006          # 0.004
+        Kp = 0.0006         # 0.004
         Kd = 0.0000001      # 0.0000001
 
         front_max_dist = max(ranges[530:550])
