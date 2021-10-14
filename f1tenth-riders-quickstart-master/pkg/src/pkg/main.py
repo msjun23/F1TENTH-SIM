@@ -10,7 +10,7 @@ current_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(current_dir)
 
 # import your drivers here
-from pkg.drivers import DisparityExtender as race_driver_base
+#from pkg.drivers import DisparityExtender as race_driver_base
 #from pkg.drivers import SimpleDriver as race_driver
 from pkg.drivers import CustomDriver as race_driver
 

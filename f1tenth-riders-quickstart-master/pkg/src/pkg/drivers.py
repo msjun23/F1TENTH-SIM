@@ -263,59 +263,19 @@ class DisparityExtender:
 ## CONTACT: msjun23@gmail.com ####################
 ##################################################
 
-# First Try: Left - Right = Error -> PD Controller
-# class CustomDriver:
-#     dt = 0.01
-#     prev_lr_err = 0.0
-
-#     def process_lidar(self, ranges):
-#         speed = 5.0
-#         steering_angle = 0.0
-#         dt = self.dt
-#         prev_lr_err = self.prev_lr_err
-
-#         left_min_dist = min(ranges[720:900])
-#         right_min_dist = min(ranges[180:360])
-#         lr_err = left_min_dist - right_min_dist
-
-#         Kp = 0.0006          # 0.004
-#         Kd = 0.0000001      # 0.0000001
-
-#         front_max_dist = max(ranges[530:550])
-#         front_min_dist = min(ranges[530:550])
-#         # Rapid Curve
-#         if (front_max_dist < 1):
-#             # Kp *= 2000
-#             # speed -= speed / front_max_dist
-#             # if (speed <= 0):
-#             #     speed = 0.1
-#             speed = -1.0
-#         elif (front_max_dist < 3):
-#             Kp *= 1000
-#             speed -= speed / front_max_dist
-#             if (speed <= 0):
-#                 speed = 0.5
-#         elif (front_max_dist < 5):
-#             Kp *= 100
-#         elif (front_max_dist < 8):
-#             Kp *= 50
-#         elif (front_max_dist < 12):
-#             Kp *= 10
-#         elif (front_min_dist > 15):
-#             speed = 50.0
-        
-#         k_term = Kp * lr_err
-#         d_term = Kd * (lr_err - prev_lr_err) / dt
-#         steering_angle = k_term + d_term
-
-#         print(front_max_dist, " ", front_min_dist, " ", prev_lr_err, " ", speed)
-#         self.prev_lr_err = lr_err
-#         return speed, steering_angle
-
-# Second Try: Left avg - Right avg = Error
+# Left avg - Right avg = Error
 class CustomDriver:
     dt = 0.01
     prev_avg_err = 0.0
+
+    speed_up = 0.0
+    def Accelator(self):
+        speed = 10.0
+
+        self.speed_up += 1
+        speed += self.speed_up / 100
+
+        return speed
 
     def process_lidar(self, ranges):
         speed = 8.0
@@ -323,11 +283,11 @@ class CustomDriver:
         dt = self.dt
         prev_avg_err = self.prev_avg_err
 
-        left_avg_dist = sum(ranges[720:900])
-        right_avg_dist = sum(ranges[180:360])
-        avg_err = (left_avg_dist - right_avg_dist) / 180
+        left_avg_dist = sum(ranges[540:900])
+        right_avg_dist = sum(ranges[180:540])
+        avg_err = (left_avg_dist - right_avg_dist) / 360
 
-        Kp = 0.0006         # 0.004
+        Kp = 0.0006         # 0.0006
         Kd = 0.0000001      # 0.0000001
 
         front_max_dist = max(ranges[530:550])
@@ -347,13 +307,56 @@ class CustomDriver:
         elif (front_max_dist < 12):
             Kp *= 16
         elif (abs(avg_err) < 1.0):
-            speed = 10.0
-        
+            speed = 11.0
+            #speed = self.Accelator()
+        else:
+            self.speed_up = 0
+
         k_term = Kp * avg_err
         d_term = Kd * (avg_err - prev_avg_err) / dt
         steering_angle = k_term + d_term
 
-        if (speed == 10.0):
+        if (speed < 8.0 or speed >= 10.0):
             print(front_max_dist, " ", front_min_dist, " ", prev_avg_err, " ", speed)
         self.prev_avg_err = avg_err
         return speed, steering_angle
+
+# front - front_max_dist = error -> PD Controller
+# Speed Control -> PI Controller
+class CustomDriver2:
+    dt = 0.1
+    ddt = 0.001
+    SPEED = 10.0
+    STEERING_ANGLE = 0.0
+    prev_dir_err = 0.0
+
+    # def SpeedController:
+
+    def SteeringController(self, ranges, front_ref=539.5):
+        front_max_dist = max(ranges[530:550])
+        idx_front_max_dist = float(np.where(ranges[530:550] == front_max_dist)[0][0] + 530)
+        
+        dir_err = front_ref - idx_front_max_dist
+
+        dt = self.dt
+        prev_dir_err = self.prev_dir_err
+
+        Kp = 0.01         # 0.0006
+        Kd = 0.0000001      # 0.0000001
+
+        k_term = Kp * dir_err
+        d_term = Kd * (dir_err - prev_dir_err) / dt
+        self.STEERING_ANGLE = -(k_term + d_term)        # minus: turn right, plus: turn left
+
+        self.prev_dir_err = dir_err
+
+    def process_lidar(self, ranges):
+        front_ref = 539.5
+
+        self.SteeringController(ranges, front_ref)
+
+        speed = self.SPEED
+        steering_angle = self.STEERING_ANGLE
+        print(self.prev_dir_err, " ", speed, " ", steering_angle)
+        return speed, steering_angle
+
