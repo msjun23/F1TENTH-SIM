@@ -321,42 +321,9 @@ class CustomDriver:
         self.prev_avg_err = avg_err
         return speed, steering_angle
 
-# front - front_max_dist = error -> PD Controller
-# Speed Control -> PI Controller
+# Prediction of Collision Probability
 class CustomDriver2:
     dt = 0.1
-    ddt = 0.001
     SPEED = 10.0
     STEERING_ANGLE = 0.0
-    prev_dir_err = 0.0
-
-    # def SpeedController:
-
-    def SteeringController(self, ranges, front_ref=539.5):
-        front_max_dist = max(ranges[530:550])
-        idx_front_max_dist = float(np.where(ranges[530:550] == front_max_dist)[0][0] + 530)
-        
-        dir_err = front_ref - idx_front_max_dist
-
-        dt = self.dt
-        prev_dir_err = self.prev_dir_err
-
-        Kp = 0.01         # 0.0006
-        Kd = 0.0000001      # 0.0000001
-
-        k_term = Kp * dir_err
-        d_term = Kd * (dir_err - prev_dir_err) / dt
-        self.STEERING_ANGLE = -(k_term + d_term)        # minus: turn right, plus: turn left
-
-        self.prev_dir_err = dir_err
-
-    def process_lidar(self, ranges):
-        front_ref = 539.5
-
-        self.SteeringController(ranges, front_ref)
-
-        speed = self.SPEED
-        steering_angle = self.STEERING_ANGLE
-        print(self.prev_dir_err, " ", speed, " ", steering_angle)
-        return speed, steering_angle
-
+    
