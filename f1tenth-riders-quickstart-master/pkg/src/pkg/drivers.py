@@ -268,15 +268,6 @@ class CustomDriver:
     dt = 0.01
     prev_avg_err = 0.0
 
-    speed_up = 0.0
-    def Accelator(self):
-        speed = 10.0
-
-        self.speed_up += 1
-        speed += self.speed_up / 100
-
-        return speed
-
     def process_lidar(self, ranges):
         speed = 8.0
         steering_angle = 0.0
@@ -291,7 +282,6 @@ class CustomDriver:
         Kd = 0.0000001      # 0.0000001
 
         front_max_dist = max(ranges[530:550])
-        front_min_dist = min(ranges[530:550])
         # Rapid Curve
         if (front_max_dist < 1):
             speed = -1.0
@@ -308,22 +298,121 @@ class CustomDriver:
             Kp *= 16
         elif (abs(avg_err) < 1.0):
             speed = 11.0
-            #speed = self.Accelator()
-        else:
-            self.speed_up = 0
 
         k_term = Kp * avg_err
         d_term = Kd * (avg_err - prev_avg_err) / dt
         steering_angle = k_term + d_term
 
-        if (speed < 8.0 or speed >= 10.0):
-            print(front_max_dist, " ", front_min_dist, " ", prev_avg_err, " ", speed)
+        # if (speed < 8.0 or speed >= 10.0):
+        #     print(front_max_dist, " ", prev_avg_err, " ", speed)
         self.prev_avg_err = avg_err
         return speed, steering_angle
 
-# Prediction of Collision Probability
-class CustomDriver2:
-    dt = 0.1
-    SPEED = 10.0
-    STEERING_ANGLE = 0.0
+# Position Controller & Speed Controller
+# class CustomDriver2:
+#     dt = 0.01
+#     speed_err_sum = 0.0
+#     prev_angle_err = 0.0
+
+#     SPEED = 0.0
     
+#     def SpeedController(self, ranges):
+#         if (self.speed_err_sum >= 5):
+#             self.speed_err_sum = 0
+
+#         dt = self.dt
+#         speed_err_sum = self.speed_err_sum
+
+#         front_avg_dist = sum(ranges[539:541]) / 2
+#         speed_ref = front_avg_dist / 2
+#         speed_err = speed_ref - self.SPEED
+#         #speed_err_sum += speed_err * dt
+
+#         Kp = 1         # 0.0006
+#         Ki = 1          # 0.001
+
+#         k_term = Kp * speed_err
+#         #i_term = Ki * speed_err_sum
+#         speed = k_term
+
+#         #print(speed_err, " ", speed_err_sum)
+#         self.speed_err_sum = speed_err_sum
+#         return speed_ref
+
+#     def PositionContrller(self, ranges):
+#         dt = self.dt
+#         prev_angle_err = self.prev_angle_err
+
+#         left_avg_dist = sum(ranges[540:900])
+#         right_avg_dist = sum(ranges[180:540])
+#         angle_err = (left_avg_dist - right_avg_dist) / 360
+
+#         Kp = 0.0006         # 0.0006
+#         Kd = 0.0000001      # 0.0000001
+
+#         front_max_dist = max(ranges[530:550])
+#         # Rapid Curve
+#         if (front_max_dist < 3):
+#             Kp *= 1600
+#         if (front_max_dist < 5):
+#             Kp *= 160
+#         elif (front_max_dist < 8):
+#             Kp *= 80
+#         elif (front_max_dist < 12):
+#             Kp *= 16
+
+#         k_term = Kp * angle_err
+#         d_term = Kd * (angle_err - prev_angle_err) / dt
+#         steering_angle = k_term + d_term
+
+#         self.prev_angle_err = angle_err
+#         return steering_angle
+
+#     def process_lidar(self, ranges):
+#         speed = self.SpeedController(ranges)
+#         steering_angle = self.PositionContrller(ranges)
+
+#         print(speed, steering_angle)
+#         self.SPEED = speed
+#         return speed, steering_angle
+
+# class CustomDriver3:
+#     dt = 0.01
+#     prev_avg_err = 0.0
+
+#     def process_lidar(self, ranges):
+#         speed = sum(ranges[539:541]) / 2 / 3 + 5
+#         steering_angle = 0.0
+#         dt = self.dt
+#         prev_avg_err = self.prev_avg_err
+
+#         left_avg_dist = sum(ranges[540:900])
+#         right_avg_dist = sum(ranges[180:540])
+#         avg_err = (left_avg_dist - right_avg_dist) / 360
+
+#         Kp = 0.0006         # 0.0006
+#         Kd = 0.0000001      # 0.0000001
+
+#         front_max_dist = max(ranges[530:550])
+#         # Rapid Curve
+#         if (front_max_dist < 1):
+#             speed = -1.0
+#         elif (front_max_dist < 3):
+#             Kp *= 1600
+#             speed -= speed / front_max_dist
+#             if (speed <= 0):
+#                 speed = 0.5
+#         elif (front_max_dist < 5):
+#             Kp *= 160
+#         elif (front_max_dist < 8):
+#             Kp *= 80
+#         elif (front_max_dist < 12):
+#             Kp *= 16
+
+#         k_term = Kp * avg_err
+#         d_term = Kd * (avg_err - prev_avg_err) / dt
+#         steering_angle = k_term + d_term
+
+#         print(front_max_dist, " ", prev_avg_err, " ", speed)
+#         self.prev_avg_err = avg_err
+#         return speed, steering_angle
