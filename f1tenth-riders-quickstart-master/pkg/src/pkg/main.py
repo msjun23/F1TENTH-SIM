@@ -12,6 +12,7 @@ sys.path.append(current_dir)
 # import your drivers here
 #from pkg.drivers import DisparityExtender as race_driver_base
 #from pkg.drivers import SimpleDriver as race_driver
+#from pkg.drivers import GapFollower as race_driver
 from pkg.drivers import CustomDriver as race_driver
 
 # choose your drivers here (1-4)
