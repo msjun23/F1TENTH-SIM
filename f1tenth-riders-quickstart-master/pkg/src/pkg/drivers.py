@@ -310,13 +310,16 @@ class DisparityExtender:
 
 # Custom GapFollower
 class CustomDriver:
-    BUBBLE_RADIUS = 260         # 160
+    BUBBLE_RADIUS = 160         # 160
     PREPROCESS_CONV_SIZE = 3
     BEST_POINT_CONV_SIZE = 80
     MAX_LIDAR_DIST = 3000000
     STRAIGHTS_SPEED = 8.0
     CORNERS_SPEED = 5.0
     STRAIGHTS_STEERING_ANGLE = np.pi / 18  # 10 degrees
+
+    START_FLAG = 1
+    MAP = ''
 
     def __init__(self):
         # used when calculating the angles of the LiDAR data
@@ -373,6 +376,16 @@ class CustomDriver:
         return steering_angle
 
     def process_lidar(self, ranges):
+        if (self.START_FLAG and ranges[180]+ranges[900] < 3.5):
+            # SOCHI
+            self.START_FLAG = 0
+            self.MAP = 'SOCHI'
+        elif (self.START_FLAG and ranges[180]+ranges[900] > 3.5):
+            # SILVERSTONE
+            self.START_FLAG = 0
+            self.MAP = 'SILVERSTONE'
+
+
         """ Process each LiDAR scan as per the Follow Gap algorithm & publish an AckermannDriveStamped Message
         """
         proc_ranges = self.preprocess_lidar(ranges)
@@ -392,15 +405,29 @@ class CustomDriver:
         # Find the best point in the gap
         best = self.find_best_point(gap_start, gap_end, proc_ranges)
 
-        # Speed Controller
-        front_avg_dist = sum(ranges[535:545]) / 10
-
-        a = 35/900
-        b = 5
-        speed = a * pow(front_avg_dist, 2) + b
-
         # Publish Drive message
         steering_angle = self.get_angle(best, len(proc_ranges))
+
+        # Speed Controller
+        front_max_dist = max(ranges[530:550])
+
+        if (self.MAP == 'SOCHI'):
+            if (front_max_dist > 20.0):
+                a = 0.66                # 0.66 -> 89.43
+                speed = a * front_max_dist
+            else:
+                a = 35/900              # 35/900 -> 89.43
+                b = 5.37                 # 5.37 -> 89.43
+                speed = a * pow(front_max_dist, 2) + b
+        elif (self.MAP == 'SILVERSTONE'):
+            if (front_max_dist > 20):
+                a = 0.67                # 0.67 -> 76.51
+                speed = a * front_max_dist
+            else:
+                a = 25/900              # 25/900 -> 76.51
+                b = 5.5                 # 5.5 -> 76.51
+                speed = a * pow(front_max_dist, 2) + b
+
         # if abs(steering_angle) > self.STRAIGHTS_STEERING_ANGLE:
         #     speed = self.CORNERS_SPEED
         # else:
