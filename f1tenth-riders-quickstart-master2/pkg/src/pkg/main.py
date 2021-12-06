@@ -11,6 +11,7 @@ current_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(current_dir)
 
 # import your drivers here
+#from pkg.drivers import GapFollower as race_driver
 from pkg.drivers import  CustomDriver as race_driver
 
 # choose your drivers here (1-4)
@@ -82,6 +83,7 @@ class GymRunner(object):
                         futures.append(executor.submit(driver.process_observation, ranges=scan, ego_odom=ego_odom))
                     elif hasattr(driver, 'process_lidar'):
                         futures.append(executor.submit(driver.process_lidar, scan, coordinate))
+                        #futures.append(executor.submit(driver.process_lidar, scan))
 
             for future in futures:
                 speed, steer = future.result()

@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 class GapFollower:
@@ -133,7 +134,7 @@ class DisparityExtender:
     # the extra safety room we plan for along walls (as a percentage of car_width/2)
     SAFETY_PERCENTAGE = 300.
 
-    def preprocess_lidar(self, ranges, coordinate):
+    def preprocess_lidar(self, ranges):
         """ Any preprocessing of the LiDAR data can be done in this function.
             Possible Improvements: smoothing of outliers in the data and placing
             a cap on the maximum distance a point can be.
@@ -255,3 +256,172 @@ class DisparityExtender:
 
     def process_observation(self, ranges, ego_odom):
         return self._process_lidar(ranges)
+
+
+##################################################
+############## My customized driver ##############
+##################################################
+## Robot Navigation Term Project2 ################
+## ID: 2016741012 ################################
+## NAME: Moon Seokjun ############################
+## CONTACT: msjun23@gmail.com ####################
+##################################################
+
+class CustomDriver:
+    BUBBLE_RADIUS = 160
+    PREPROCESS_CONV_SIZE = 3
+    BEST_POINT_CONV_SIZE = 80
+    MAX_LIDAR_DIST = 3000000
+    STRAIGHTS_SPEED = 8.0
+    CORNERS_SPEED = 5.0
+    STRAIGHTS_STEERING_ANGLE = np.pi / 18  # 10 degrees
+
+    def __init__(self):
+        # used when calculating the angles of the LiDAR data
+        self.radians_per_elem = None
+
+    def preprocess_lidar(self, ranges):
+        """ Preprocess the LiDAR scan array. Expert implementation includes:
+            1.Setting each value to the mean over some window
+            2.Rejecting high values (eg. > 3m)
+        """
+        self.radians_per_elem = (2 * np.pi) / len(ranges)
+        # we won't use the LiDAR data from directly behind us
+        proc_ranges = np.array(ranges[135:-135])
+        # sets each value to the mean over a given window
+        proc_ranges = np.convolve(proc_ranges, np.ones(self.PREPROCESS_CONV_SIZE), 'same') / self.PREPROCESS_CONV_SIZE
+        proc_ranges = np.clip(proc_ranges, 0, self.MAX_LIDAR_DIST)
+        return proc_ranges
+
+    def find_max_gap(self, free_space_ranges):
+        """ Return the start index & end index of the max gap in free_space_ranges
+            free_space_ranges: list of LiDAR data which contains a 'bubble' of zeros
+        """
+        # mask the bubble
+        masked = np.ma.masked_where(free_space_ranges == 0, free_space_ranges)
+        # get a slice for each contigous sequence of non-bubble data
+        slices = np.ma.notmasked_contiguous(masked)
+        max_len = slices[0].stop - slices[0].start
+        chosen_slice = slices[0]
+        # I think we will only ever have a maximum of 2 slices but will handle an
+        # indefinitely sized list for portablility
+        for sl in slices[1:]:
+            sl_len = sl.stop - sl.start
+            if sl_len > max_len:
+                max_len = sl_len
+                chosen_slice = sl
+        return chosen_slice.start, chosen_slice.stop
+
+    def find_best_point(self, start_i, end_i, ranges):
+        """Start_i & end_i are start and end indices of max-gap range, respectively
+        Return index of best point in ranges
+        Naive: Choose the furthest point within ranges and go there
+        """
+        # do a sliding window average over the data in the max gap, this will
+        # help the car to avoid hitting corners
+        averaged_max_gap = np.convolve(ranges[start_i:end_i], np.ones(self.BEST_POINT_CONV_SIZE),
+                                       'same') / self.BEST_POINT_CONV_SIZE
+        return averaged_max_gap.argmax() + start_i
+
+    def get_angle(self, range_index, range_len):
+        """ Get the angle of a particular element in the LiDAR data and transform it into an appropriate steering angle
+        """
+        lidar_angle = (range_index - (range_len / 2)) * self.radians_per_elem
+        steering_angle = lidar_angle / 2
+        return steering_angle
+    
+    ##########
+
+    prev_point = [0.8007017, -0.2753365]
+    
+    # check point 0~17
+    dest = [[1664.0, 773.0], [1551.0, 842.0], [1207.0, 900.0], [1122, 846], 
+            [1207.0, 900.0], [1551.0, 842.0], [1594.0, 924.0], [979.0, 1231.0], [902.0, 1004.0], 
+            [943.0, 917.0], [847, 709], [666.0, 775.0], [610, 776], [594.0, 727.0], [544.0, 723.0], [508, 742], [480, 711], [591.0, 568.0]]
+    
+    check_point_cnt = 0
+    check_point_mission_flag = True
+    
+    def RAD2DEG(self, rad):
+        return rad * 180 / math.pi
+    
+    def Img2SimCoordinate(self, img_coordinate):
+        x_sim = img_coordinate[0] * 0.08534 - 156.68159080844768
+        y_sim = (2000 - img_coordinate[1]) * 0.08534 - 121.23484964729177
+        return [x_sim, y_sim]
+        
+    def Sim2ImgCoordinate(self, sim_coordinate):
+        x_img = (sim_coordinate[0] + 156.68159080844768) / 0.08534
+        y_img = 2000 - ((sim_coordinate[1] + 121.23484964729177) / 0.08534)
+        return [x_img, y_img]
+    
+    def GetVect(self, sx, sy, gx, gy):
+        # Calculate current direction vector
+        # sx, sy: starting coordinate
+        # gx, gy: goal coordinate
+        return [gx-sx, gy-sy]
+    
+    def CalcDist(self, cx, cy, gx, gy):
+        # Calculate distance, current point to goal point
+        # cx, cy: current coordinate
+        # gx, gy: goal coordinate
+        return math.sqrt(pow((gx-cx), 2) + pow((gy-cy), 2))
+    
+    def process_lidar(self, ranges, coordinate):
+        if (self.check_point_mission_flag):
+            tar_point = self.Img2SimCoordinate(self.dest[self.check_point_cnt])
+            
+            dist = self.CalcDist(coordinate[0], coordinate[1], tar_point[0], tar_point[1])
+            if (dist <= 1.0):
+                # if robot is arrived at check point
+                self.check_point_cnt += 1
+                if (self.check_point_cnt >= 18):
+                    # if check point missions are completed
+                    self.check_point_mission_flag = False
+                    return 10.0, 0.0
+                else:
+                    tar_point = self.Img2SimCoordinate(self.dest[self.check_point_cnt])
+            else:
+                pass
+            
+            curr_dir_vect = self.GetVect(self.prev_point[0], self.prev_point[1], coordinate[0], coordinate[1])
+            tar_dir_vect = self.GetVect(self.prev_point[0], self.prev_point[1], tar_point[0], tar_point[1])
+            vect_angle = math.atan2(np.cross(tar_dir_vect, curr_dir_vect), np.dot(tar_dir_vect, curr_dir_vect))
+            
+            self.prev_point = coordinate
+            
+            # Angle Controller
+            Kp = 0.6
+            steering_angle = Kp * -vect_angle
+            
+            # Speed Controller
+            if abs(steering_angle) > 0.1:    speed = 5.0
+            else:   speed = 8.0
+        else:
+            proc_ranges = self.preprocess_lidar(ranges)
+            # Find closest point to LiDAR
+            closest = proc_ranges.argmin()
+
+            # Eliminate all points inside 'bubble' (set them to zero)
+            min_index = closest - self.BUBBLE_RADIUS
+            max_index = closest + self.BUBBLE_RADIUS
+            if min_index < 0: min_index = 0
+            if max_index >= len(proc_ranges): max_index = len(proc_ranges) - 1
+            proc_ranges[min_index:max_index] = 0
+
+            # Find max length gap
+            gap_start, gap_end = self.find_max_gap(proc_ranges)
+
+            # Find the best point in the gap
+            best = self.find_best_point(gap_start, gap_end, proc_ranges)
+
+            # Publish Drive message
+            steering_angle = self.get_angle(best, len(proc_ranges))
+            if abs(steering_angle) > self.STRAIGHTS_STEERING_ANGLE:
+                speed = self.CORNERS_SPEED
+            else:
+                speed = self.STRAIGHTS_SPEED
+            
+        print('steering_angle: ', steering_angle, '/ speed: ', speed)    
+        return speed, steering_angle
+        
