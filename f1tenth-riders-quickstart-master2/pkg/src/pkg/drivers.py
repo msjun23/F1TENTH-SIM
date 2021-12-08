@@ -268,13 +268,13 @@ class DisparityExtender:
 ##################################################
 
 class CustomDriver:
-    BUBBLE_RADIUS = 160
+    BUBBLE_RADIUS = 160             # 160
     PREPROCESS_CONV_SIZE = 3
     BEST_POINT_CONV_SIZE = 80
     MAX_LIDAR_DIST = 3000000
-    STRAIGHTS_SPEED = 8.0
-    CORNERS_SPEED = 5.0
-    STRAIGHTS_STEERING_ANGLE = np.pi / 18  # 10 degrees
+    STRAIGHTS_SPEED = 5.0           # 8.0
+    CORNERS_SPEED = 5.0             # 5.0
+    STRAIGHTS_STEERING_ANGLE = np.pi / 18       # 10 degrees = np.pi / 18
 
     def __init__(self):
         # used when calculating the angles of the LiDAR data
@@ -395,8 +395,25 @@ class CustomDriver:
             steering_angle = Kp * -vect_angle
             
             # Speed Controller
-            if abs(steering_angle) > 0.1:    speed = 5.0
-            else:   speed = 8.0
+            # if abs(steering_angle) > 0.1:    speed = 5.0
+            # else:   speed = 8.0
+            # normal state
+            speed = 10 - (10 * abs(steering_angle))
+            
+            # straight line
+            front_max_dist = max(ranges[530:550])
+            if self.check_point_cnt==7 and abs(steering_angle) < 0.05 and front_max_dist > 20.0:
+                    speed = 0.6 * front_max_dist
+                    steering_angle = 0.0
+            
+            # slowly near target point
+            if (dist < 3.0):
+                speed = 5.0;
+                steering_angle = Kp * -vect_angle
+            # minimum speed limit
+            if (speed < 3.0):
+                speed = 3.0
+                steering_angle = Kp * -vect_angle
         else:
             proc_ranges = self.preprocess_lidar(ranges)
             # Find closest point to LiDAR
@@ -422,6 +439,6 @@ class CustomDriver:
             else:
                 speed = self.STRAIGHTS_SPEED
             
-        print('steering_angle: ', steering_angle, '/ speed: ', speed)    
+        print('steering_angle: ', steering_angle, '/ speed: ', speed)
         return speed, steering_angle
         
