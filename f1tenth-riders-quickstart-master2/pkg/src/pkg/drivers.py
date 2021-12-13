@@ -340,6 +340,7 @@ class CustomDriver:
             [943.0, 917.0], [847, 709], [666.0, 775.0], [610, 776], [594.0, 727.0], [544.0, 723.0], [508, 742], [480, 711], [591.0, 568.0]]
     
     check_point_cnt = 0
+    check_point_cnt_end = 18
     check_point_mission_flag = True
     
     def RAD2DEG(self, rad):
@@ -375,7 +376,7 @@ class CustomDriver:
             if (dist <= 1.0):
                 # if robot is arrived at check point
                 self.check_point_cnt += 1
-                if (self.check_point_cnt >= 18):
+                if (self.check_point_cnt >= self.check_point_cnt_end):
                     # if check point missions are completed
                     self.check_point_mission_flag = False
                     return 10.0, 0.0
@@ -402,7 +403,7 @@ class CustomDriver:
             
             # straight line
             front_max_dist = max(ranges[530:550])
-            if self.check_point_cnt==7 and abs(steering_angle) < 0.05 and front_max_dist > 20.0:
+            if self.check_point_cnt>=7 and abs(steering_angle) < 0.05 and front_max_dist > 20.0:
                     speed = 0.6 * front_max_dist
                     steering_angle = 0.0
             
@@ -439,6 +440,6 @@ class CustomDriver:
             else:
                 speed = self.STRAIGHTS_SPEED
             
-        print('steering_angle: ', steering_angle, '/ speed: ', speed)
+        #print('steering_angle: ', steering_angle, '/ speed: ', speed)
         return speed, steering_angle
         
