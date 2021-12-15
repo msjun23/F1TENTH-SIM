@@ -97,17 +97,6 @@ class GapFollower:
         return speed, steering_angle
 
 
-# drives straight ahead at a speed of 5
-class CustomDriver:
-
-    def process_lidar(self, ranges, coordinate):
-        x_sim = coordinate[0]
-        y_sim = coordinate[1]
-        speed = 5.0
-        steering_angle = 0.0
-        return speed, steering_angle
-
-
 # drives toward the furthest point it sees
 class AnotherDriver:
 
