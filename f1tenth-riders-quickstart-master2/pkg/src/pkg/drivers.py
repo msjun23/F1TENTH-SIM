@@ -626,8 +626,11 @@ class CustomDriver:
     load_path = True
     
     prev_point = [0.8007017, -0.2753365]
-    path = []
     path_idx = 0
+    
+    # check point 0~17
+    path = [[1664, 1551, 1207, 1122, 1207, 1551, 1594, 979, 902, 943, 847, 666, 610, 594, 544, 508, 480, 591], 
+            [773, 842, 900, 846, 900, 842, 924, 1231, 1004, 917, 709, 775, 776, 727, 723, 742, 711, 568]]
     
     def Img2SimCoordinate(self, img_coordinate):
         x_sim = img_coordinate[0] * 0.08534 - 156.68159080844768
@@ -654,17 +657,17 @@ class CustomDriver:
     def process_lidar(self, ranges, coordinate):
         if self.load_path:
             # Load saved path at beginning
-            route1 = np.load('route1.npy')
-            route2 = np.load('route2.npy')
-            route3 = np.load('route3.npy')
-            route1[1] = 2000-route1[1]
-            route2[1] = 2000-route2[1]
-            route3[1] = 2000-route3[1]
+            # route1 = np.load('route1.npy')
+            # route2 = np.load('route2.npy')
+            # route3 = np.load('route3.npy')
+            # route1[1] = 2000-route1[1]
+            # route2[1] = 2000-route2[1]
+            # route3[1] = 2000-route3[1]
             #print(np.shape(route1), np.shape(route2), np.shape(route3))
             
             # Loaded routes -> check point mission path
-            self.path = np.append(route1, route2, axis=1)
-            self.path = np.append(self.path, route3, axis=1)
+            # self.path = np.append(route1, route2, axis=1)
+            # self.path = np.append(self.path, route3, axis=1)
             
             # Make route for unknown map
             kernel = np.ones((3, 3), np.uint8)
@@ -679,7 +682,8 @@ class CustomDriver:
             oy = 2000 - obs[0]
             m.set_obstacle([(i, j) for i, j in zip(ox, oy)])
             
-            start = [482, 2000-732]
+            #start = [482, 2000-732]
+            start = [591, 2000-568]
             goal = [1758, 2000-656]
             start = m.map[start[0]][start[1]]
             goal = m.map[goal[0]][goal[1]]
@@ -699,7 +703,11 @@ class CustomDriver:
             dist = self.CalcDist(coordinate[0], coordinate[1], tar_point[0], tar_point[1])
             if (dist <= 1.0):
                 # if robot is arrived at check point
-                self.path_idx += 20
+                if (self.path_idx < 17):
+                    self.path_idx += 1
+                else:
+                    self.path_idx += 10;
+                    
                 if (self.path_idx >= len(self.path[0])):
                     # if check point missions are completed
                     print('Check point mission complete!')
@@ -718,8 +726,28 @@ class CustomDriver:
             # Angle Controller
             Kp = 0.6
             steering_angle = Kp * -vect_angle
-            speed = 5.0
+            
+            # Speed Controller
+            if self.path_idx <= 17:
+                # normal state
+                speed = 10 - (10 * abs(steering_angle))
+                
+                # straight line
+                front_max_dist = max(ranges[530:550])
+                if self.path_idx>=7 and abs(steering_angle) < 0.05 and front_max_dist > 20.0:
+                        speed = 0.6 * front_max_dist
+                        steering_angle = 0.0
+                
+                # slowly near target point
+                if (dist < 3.0):
+                    speed = 5.0;
+                    steering_angle = Kp * -vect_angle
+                # minimum speed limit
+                if (speed < 3.0):
+                    speed = 3.0
+                    steering_angle = Kp * -vect_angle
+            else:
+                speed = 5.0
         
             print('steering_angle: ', steering_angle, '/ speed: ', speed)
             return speed, steering_angle
-        
