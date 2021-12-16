@@ -695,7 +695,7 @@ class CustomDriver:
                 if (self.path_idx < 17):
                     self.path_idx += 1
                 else:
-                    self.path_idx += 10;
+                    self.path_idx += 10
                     
                 if (self.path_idx >= len(self.path[0])):
                     # if check point missions are completed
